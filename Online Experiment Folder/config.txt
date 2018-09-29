@@ -1,0 +1,35 @@
+[HIT Configuration]
+title = Judge motion in different parts of your visual field!
+description = Make judgments about things in different locations on your computer’s screen
+amt_keywords = Perception, Psychology, experiment
+lifetime = 24
+us_only = true
+approve_requirement = 95
+contact_email_on_error = summarycomputations@gmail.com
+ad_group = Mean Judgments (conditions -15/-12/-9/-6/-3/0/3/6/9/12/15)
+psiturk_keywords = Perceptual Judgments
+organization_name = University of California-Los Angeles
+browser_exclude_rule = mobile, tablet, touchcapable, MSIE
+
+[Database Parameters]
+database_url = mysql://:|:
+table_name = turkdemo
+
+[Server Parameters]
+host = 0.0.0.0
+port = 22362
+cutoff_time = 75
+logfile = server.log
+loglevel = 2
+debug = true
+login_username = examplename
+login_pw = examplepassword
+threads = auto
+
+[Task Parameters]
+experiment_code_version = 1.0
+num_conds = 1
+num_counters = 1
+
+[Shell Parameters]
+launch_in_sandbox_mode = true

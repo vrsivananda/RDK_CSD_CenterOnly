@@ -1,0 +1,21 @@
+.box {
+  width: 45%;
+  border: 1px solid;
+  height: 400px;
+  float: left;
+  margin: 0 10px 10px 0;
+  padding: 10px;
+  font-size: 100%;
+  font-family: “Sans-serif”;
+  font-weight: bold;
+
+}
+
+.rs-control {
+  margin: 0 auto;
+}
+
+.btn {
+  margin-top: 20px;
+  display: block;
+}

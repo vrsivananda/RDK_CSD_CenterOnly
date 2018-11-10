@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!--
+       Most of the functions below are written by Jason Carpenter.
+       GitHub: https://github.com/jmcarpenter2
+    -->
+    <title>RDK experiment</title>
+    
+    <!---------JS CSD inserts start-------->
+    <script src="JavaScriptCSD/csd.js"></script>
+    <script src="JavaScriptCSD/jmat.js"></script>
+    <script> var exports = {}; </script>
+    <script src="JavaScriptCSD/MathFn/functions/erf.js"></script>
+    
+    <!---------JS CSD inserts end-------->
+    <!--Your jsPsych plugins below this line-->
+     <script src = "https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+     <script src = "jspsych-6.0.3/jspsych.js"></script>
+     <script src = "jspsych-6.0.3/plugins/jspsych-RDK.js"></script> <!--Include the script for the RDK plugin-->
+     <script src = "jspsych-6.0.3/plugins/jspsych-instructions.js"></script>
+     <script src = "jspsych-6.0.3/plugins/jspsych-fullscreen.js"></script>
+     <script src = "jspsych-6.0.3/plugins/jspsych-html-keyboard-response.js"></script>
+     <script src = "jspsych-6.0.3/plugins/jspsych-survey-text.js"></script>
+     <script src = "jspsych-6.0.3/plugins/jspsych-survey-multi-choice.js"></script>
+     <link href = "jspsych-6.0.3/css/jspsych.css" rel = "stylesheet" type = "text/css"></link>
+     <script src = "jspsych-6.0.3/plugins/jspsych-html-slider-response.js"></script>
+     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script> <!--For similarity plugin-->
+     <script src = "pest.js"></script> <!--For pest procedure-->
+    <link href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/black-tie/jquery-ui.min.css" rel="stylesheet" type="text/css"></link><!--For similarity plugin-->
+    
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="jspsych-6.0.1/jspsych.js"></script>
+    <link href="jspsych-6.0.1/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+    <script src="jspsych-6.0.1/plugins/jspsych-survey-multi-choice.js"></script>
+    <script src="jspsych-6.0.1/plugins/jspsych-external-html.js"></script>
+    <script src="jspsych-6.0.1/plugins/jspsych-html-keyboard-response.js"></script>
+    <script src="jspsych-6.0.1/plugins/jspsych-html-button-response.js"></script>
+-->
+    <!--Your jsPsych plugins above this line-->
+</head>
+<body>
+</body>
+<script>
+    
+        //Data switches
+        var saveLocally = 1;	// 0: Nothing.      1: Download CSV file
+        var displayData = 0;  	// 0: Nothing.      1: Display data on browser
+        var launchOnline = 0;	// 0: Nothing.		1: Save to database, consent form, completion code generation, dummy variables created for all 3 IDs
+        var tableName = ''; //Name of the table in the database
+        
+        if(launchOnline){
+        
+            //Get the info from mTurk
+            var turkInfo = jsPsych.turk.turkInfo();
+            var workerId = turkInfo.workerId;
+            var assignmentId = turkInfo.assignmentId;
+            var hitId = turkInfo.hitId;
+            
+        }
+        else{
+            
+            // Use the timestamp as a unique id (specific to the second)
+            var timestamp = Math.floor(Date.now()/1000);
+            
+            workerId = "workerId_" + timestamp;
+            assignmentId = "assignmentId_" + timestamp;
+            hitId = "hitId_" + timestamp;
+        
+        
+            //Print out to console to check
+            console.log("workerId: " + workerId);
+            console.log("assignmentId: " + assignmentId);
+            console.log("hitId: " + hitId);
+            
+        }
+    	
+        
+        //------------------- Your code below this line -------------------
+        
+        
+
+       //PARAMETERS
+        var trialDuration = 200;
+        var trialsPerCondition = 1; //Each "Condition" has 4 center trials: 2 (left/right) * 2 (myPEST1/myPEST2)
+        var numberOfBreaks = 1;
+        var RDKType = 3;
+        var numberOfSets = 3;
+        var moveDistance = 3;
+        var apertureType = 1; //1 is circle, 2 is ellipse
+        var apertureWidth = 400; //If circle, this is used for radius
+        var apertureHeight = 400;
+        var numberOfDots = 100;
+        var choices = [];
+        var coherentDirection_left = 180; //Left and right corresponds to the scale on similarity which ranges from left to right (0 to 100)
+        var coherentDirection_right = 0;
+        var peripheryDistanceFromCenter = 400; //The distance of the center of periphery apertures from the center of screen, in pixels
+        
+        //Timing parameters
+        var timingPostTrialText = 1000;
+        var timingPostTrialRDK = 1000;
+        var timingPostTrialSimilarity = 1000;
+        var fixationCrossDuration = 1000;
+        
+        //Variables for practice trials
+        var easyCoherence = 0.8;
+        var hardCoherence = 0.2;
+        var numberOfEasyPracticeTrialsCenter = 6; //Must be even number (pair of left/right). Odd number will be rounded down to even.
+        var numberOfHardPracticeTrialsCenter = 4; //Must be even number (pair of left/right). Odd number will be rounded down to even.
+//      var numberOfEasyPracticeTrialsPeriphery = 4; //Must be divisible by 4 (left_left, left_right, right_left, right_right)
+//      var numberOfEasyPracticeTrialsBoth = 4; //Must be even number (pair of left/right). Odd number will be rounded down to even.
+//      var numberOfHardPracticeTrialsBoth = 4; //Must be even number (pair of left/right). Odd number will be rounded down to even.
+        var easyCorrectThreshold = 4; //If they get less than this value, kick them out
+        var easyCorrectCounter = 0;
+        var hardCorrectCounter = 0;
+        
+        //FixationCrossParameters
+        var fixationCross = true; //To display or not to display the cross
+        var fixationCrossWidth = 20; //The width of the fixation cross in pixels
+        var fixationCrossHeight = 20; //The height of the fixation cross in pixels
+        var fixationCrossColor = "black"; //The color of the fixation cross
+        var fixationCrossThickness = 1; //The thickness of the fixation cross, must be positive number above 1
+        
+        //-------------------- PEST --------------------
+        
+        //Variables for 3 Down / 1 Up
+        var downThreshold = 3; // 3 Down
+        var upThreshold = 1; // 1 Up
+        var upperCoherenceLimit = 1.0;
+        var lowerCoherenceLimit = 0.0000000001; //Practically 0, but cannot set to 0 because JavaScript evaluates it as false in the RDK plugin
+        var correctStreakCounter = 0;
+        var incorrectStreakCounter = 0;
+        
+        //Variables for myPEST1&2
+        var currentStepSize = 0.32; //Global variable to hold the current step size
+        var minimumStepSize = 0.01; //Smallest step size
+        var maximumStepSize = 0.32; //Largest step size
+        var currentCoherence1 = 0.7; //Starting coherence
+        var currentCoherence2 = 0.05; //Starting coherence
+        
+        //Create the parameter object for PEST
+        var pestParameters = {
+            down_threshold: downThreshold,
+            up_threshold: upThreshold,
+            upper_intensity_limit: upperCoherenceLimit,
+            lower_intensity_limit: lowerCoherenceLimit,
+            starting_step_size: currentStepSize,
+            min_step_size: minimumStepSize,
+            max_step_size: maximumStepSize
+        };
+        
+        //Create copies of the parameter object
+        var pestParameters1 = Object.assign({}, pestParameters);
+        var pestParameters2 = Object.assign({}, pestParameters);
+        
+        //Modify the parameter object
+        pestParameters1.starting_intensity = currentCoherence1;
+        pestParameters2.starting_intensity = currentCoherence2;
+        
+        //Initialize the pest object
+        var myPest1 = new pest(pestParameters1);
+        var myPest2 = new pest(pestParameters2); 
+        
+        
+        //-------------------- CSD --------------------
+        
+        //Create the CSD object
+        var myCSD = new csd();
+        
+        //-------------------- Other parameters --------------------
+        
+        //TrialCounter for debugging
+        var trialCounter = 0;
+        
+        //Prototype of a trial to be modified in the functions based on what is needed
+        //coherent direction and coherence parameters still need to be specified (will do so in the makeTwoTrialsArray function below)
+        var typicalTrial = {
+            type: "RDK", 
+            post_trial_gap: timingPostTrialRDK, //The Inter Trial Interval. You can either have no ITI, or change the display element to be the same color as the stimuli background to prevent flashing between trials
+            number_of_dots: numberOfDots, //Total number of dots in the aperture
+            number_of_sets: numberOfSets,
+            move_distance: moveDistance,
+            RDK_type: RDKType, //The type of RDK used
+            trial_duration: trialDuration, //Duration of each trial in ms
+            fixation_cross: fixationCross, //Whether or not here is a fixation cross
+            aperture_type: apertureType,
+            aperture_height: apertureHeight,
+            aperture_width: apertureWidth,
+            on_finish: function(dataObject){
+                //Add the window data to the object
+                jsPsych.data.addDataToLastTrial({window_height: window.innerHeight});
+                jsPsych.data.addDataToLastTrial({window_width: window.innerWidth});
+                //Increment the trial counter and log it onto the console;
+            }
+        };
+        
+        
+        //Shortcuts for text (used in the text-making functions)
+        var openText = "<h3>"
+        var closeText = "</h3>"
+        var lineSkip = "<br>";
+        
+        //Global variable to transer the correct variable from Similarity trial data to Fixation cross trial data
+        var transferCorrect1;
+        var transferCorrect2;
+        
+        //Change the body element to be the same color as the stimuli background
+        document.getElementsByTagName("body")[0].style.background = "gray";
+        
+        //Set the fake stimuli such that the slider is below the aperture
+        var fakeStimuli = "<div style = 'height: " + (window.innerHeight/2)+ "px; width: 700px;'></div>"; //This adjusts how high the slider is on the screen. Increase the height of the fake stimuli to push the slider down. Decrease the height to move the slider up.
+        
+        //----------Make practice trials----------
+        
+        
+        //-----EASY TRIALS-----
+        
+//      var practiceTrialsBlock = [];
+
+        var practiceTrialsBlock = 
+            addInEndExperimentClause(makePracticeTrials("center","easy",numberOfEasyPracticeTrialsCenter)).concat
+                (makeTextBetweenEasyAndHardPracticeTrials().concat
+                    (makePracticeTrials("center","hard",numberOfHardPracticeTrialsCenter)));
+                
+        console.log(practiceTrialsBlock);
+            
+        
+        
+        //--Center--
+//      var easyPracticeTrialsArrayCenter = makePracticeTrials("center","easy",numberOfEasyPracticeTrialsCenter); //Make the easy center practice trials
+//      practiceTrialsBlock = practiceTrialsBlock.concat(easyPracticeTrialsArrayCenter);//Add in the easy center practice trials
+//      practiceTrialsBlock = practiceTrialsBlock.concat(makeTextBetweenEasyCenterAndPeripheryPracticeTrials());//Add in the instructions in between
+
+//      var hardPracticeTrialsArrayCenter =  makePracticeTrials("center","hard",numberOfHardPracticeTrialsCenter)
+//      practiceTrialsBlock = practiceTrialsBlock.concat(hardPracticeTrialsArrayCenter);
+/*      
+        //--Periphery--
+        
+        var easyPracticeTrialsArrayPeriphery = makePracticeTrials("periphery","easy",numberOfEasyPracticeTrialsPeriphery); //Make the easy periphery practice trials
+        practiceTrialsBlock = practiceTrialsBlock.concat(easyPracticeTrialsArrayPeriphery);//Add in the easy periphery practice trials
+        practiceTrialsBlock = practiceTrialsBlock.concat(makeTextBeforeBothPositionsEasyPracticeTrials());//Add in the instructions in between
+        
+        //--Both--
+        
+        var easyPracticeTrialsArrayBoth = makePracticeTrials("both","easy",numberOfEasyPracticeTrialsBoth); //Make the easy both practice trials
+        practiceTrialsBlock = practiceTrialsBlock.concat(easyPracticeTrialsArrayBoth);//Add in the easy both practice trials
+        
+        
+        //--End Experiment Clause--
+        
+        //Add in the clause at the last easy practice trial to end the experiment if the number of correct responses for easy practice trials was not reached
+        //practiceTrialsBlock = addInEndExperimentClause(practiceTrialsBlock);
+        
+        
+        //-----HARD TRIALS-----
+        
+        practiceTrialsBlock = practiceTrialsBlock.concat(makeTextBetweenEasyAndHardPracticeTrials());//Add in the instructions in between
+        var hardPracticeTrialsArrayBoth = makePracticeTrials("both","hard",numberOfHardPracticeTrialsBoth); //Make the hard both practice trials
+        practiceTrialsBlock = practiceTrialsBlock.concat(hardPracticeTrialsArrayBoth);//Add in the hard both practice trials
+
+*/              
+        
+        //----------Make actual trials----------
+        
+        //Make two trials for the actual trials (staircase) for PEST1
+        var twoActualTrialsArrayCenterPEST1 = makeTwoTrialsArray("center","staircase"); //A 2-element array that contains one left trial and one right trial (i.e. [left_direction_trial, right_direction_trial])
+        
+        //Make 2 trials (left direction and right direction) for PEST2
+        var twoActualTrialsArrayCenterPEST2 = changeToPEST2(makeTwoTrialsArray("center","staircase"));
+
+/*      
+        //Make the periphery trials
+        var twoActualTrialsArrayLeft = makeTwoTrialsArray("left","staircase");
+        var twoActualTrialsArrayRight = makeTwoTrialsArray("right","staircase");
+*/      
+        //The correct trials in correct proportions:  (2 center : 1 left : 1 right)
+        var actualTrials = twoActualTrialsArrayCenterPEST1.concat(twoActualTrialsArrayCenterPEST2);/*.concat(twoActualTrialsArrayCenter.concat(twoActualTrialsArrayLeft.concat(twoActualTrialsArrayRight)))*/;
+        
+        //Duplicate and shuffle the array
+        var  randomizedActualTrials = jsPsych.randomization.repeat(actualTrials,trialsPerCondition);
+
+        //Add in the similarity plugin after each trial
+        var allActualTrials = interleaveSimilarityIntoTrials(randomizedActualTrials);
+        
+        //Add in the break screens for the actual trials
+        var allActualTrialsWithBreaks = addInBreaks(allActualTrials);
+        
+        
+        //------Main Timeline------
+        
+        //The main timeline to be fed into jsPsych.init
+        var main_timeline = [];
+//        main_timeline = main_timeline.concat(makeFullscreenBlock());
+//        main_timeline = main_timeline.concat(makeInstructionsBlock()); //Instructions
+        main_timeline = main_timeline.concat(practiceTrialsBlock); //Easy practice trials
+        main_timeline = main_timeline.concat(makeTextBeforeActualTrials()); //Transition to actual trials
+        main_timeline = main_timeline.concat(allActualTrialsWithBreaks); //Actual trials
+        main_timeline = main_timeline.concat(makeSurvey()); //Survey
+        main_timeline = insertFixationCrossBeforeRDK(main_timeline); //Insert the fixation crosses before all RDKs
+        
+        
+        //-----Browser Info-----
+        
+        //Get the browser info
+        var browserInfo = getBrowserInfo(); 
+        
+        //Add the browser info
+        jsPsych.data.addProperties({browser: browserInfo.browser});
+        
+        
+        
+        //------------------- Your code above this line -------------------
+        
+        if(launchOnline){
+        	main_timeline.unshift(createConsentFormBlock())
+	        main_timeline.push(createCompletionCodeBlock());
+	        main_timeline.push(createGoodbyeBlock());
+    	}
+
+        //Initiate the experiment
+        jsPsych.init({
+            timeline: main_timeline,
+            on_finish: function(){ //Execute this when the experiment finishes
+                if(saveLocally == true){
+                    jsPsych.data.get().localSave('csv','testSave.csv'); //Save the data locally in a .csv file
+                }
+                if(displayData == true){
+                    jsPsych.data.displayData(); //Display the data onto the browser screen
+                }
+            },
+            on_trial_finish: function(){ //Execute this after every trial
+                if (launchOnline == true){
+                    save_data(tableName, [jsPsych.data.get().last(1).values()[0]]);
+                }
+            }
+        });
+        
+        //=========================================
+        //========Functions below this line========
+        //=========================================
+        
+        
+        /* Jason's browser exclusion code so subjects only use Google Chrome */
+        function getBrowserInfo(){ 
+            var ua = navigator.userAgent, tem, 
+            M = ua.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || []; 
+            if(/trident/i.test(M[1])) 
+            { 
+                tem=  /\brv[ :]+(\d+)/g.exec(ua) || []; 
+                return 'IE '+(tem[1] || ''); 
+            } 
+            if(M[1]=== 'Chrome') 
+            { 
+                tem= ua.match(/\b(OPR|Edge)\/(\d+)/); 
+                if(tem!= null) return tem.slice(1).join(' ').replace('OPR', 'Opera'); 
+            } 
+            M = M[2]? [M[1], M[2]]: [navigator.appName, navigator.appVersion, '-?']; 
+            if((tem= ua.match(/version\/(\d+)/i))!= null) 
+                M.splice(1, 1, tem[1]); 
+            return { 'browser': M[0], 'version': M[1] }; 
+        } 
+        
+        //------Text-creation Functions Begin-------
+        
+        function makeFullscreenBlock(){
+            return {
+                type: 'fullscreen',
+                message: openText + 'Thank you for choosing to do our experiment!' + lineSkip + lineSkip + 'The experiment will switch to fullscreen mode when you press the button below' + closeText
+            };
+        }
+        
+        
+        //Function to create instructions
+        function makeInstructionsBlock(){
+            
+            //Shortcuts for the text
+            var header = "<h2> Instructions: </h2>";
+            
+            var text0 = header +
+                lineSkip + openText +
+                "Thank you for choosing this experiment!" + 
+                closeText + lineSkip + openText +
+                "Before we begin, please make your current browser window fullscreen as to ensure that the visual stimuli is presented properly." + 
+                closeText + lineSkip + openText +
+                "<i>Please make your browser window take up your entire screen NOW.</i>" + 
+                closeText + lineSkip + openText +
+                "Once your browser is in fullscreen, press any key to continue."
+            
+            //First page text
+            var text1 = header + 
+                lineSkip + openText +
+                "We would like you to sit in a position that is best for your comfort and for our experiment. " +
+                closeText + lineSkip + openText +
+                "Sit comfortably on your chair with your arm extended out to the center of the screen and your fist closed. When your arm is straight, your knuckles should be barely touching the screen. This is the ideal distance and do your best to keep your eyes around that distance to the screen. Make sure that you are able to look directly in the middle of the screen comfortably." +
+                closeText + lineSkip + openText +
+                "Once you are comfortable with the position, press 'Next' to continue." +
+                closeText;
+            
+            //Second page text
+            var text2 = header + 
+                lineSkip + openText +
+                "You will be presented with a collection of moving dots either in the middle or near the sides of the screen. Some of them will be moving randomly (random dots) and others will all be moving to the left or right at the same speed (non-random dots). Your task is to determine in which direction the non-random dots are moving (left or right)." +
+                closeText + lineSkip + openText +
+                "The proportion of dots that move randomly will range from 0% of the total dots to 100% of the dots. Thus some trials will be easy to judge, but other trials will be more difficult. Try to be as accurate as possible on all trials, even the difficult ones!" +
+                closeText + lineSkip + openText +
+                "Press 'Next' to continue." +
+                closeText;
+                
+            //Third page text   
+            var text3 = header + 
+                lineSkip + openText +
+                "After 0.2 seconds, the dots will disappear and a slider will show up on the screen. The initial position of the slider will be in the middle. Drag the slider to the left if you think the non-random dots moved to the left. Drag the slider to the right if you think the non-random dots moved to the right." +
+                closeText + lineSkip + openText +
+                "The slider also represents your confidence in the task. Drag the slider based on how confident you are in the direction of the dots that are all moving in the same direction (non-random dots). For example, if you think there is a 100% chance that the dots moved to the left (i.e. you are certain that they moved to the left), then drag it all the way to the left. However, if you think that there is 75% chance that they moved towards the left, and 25% chance that they moved towards the right, then drag the slider halfway towards the left. The slider will have markers to help you." +
+                closeText + lineSkip + openText +
+                "Press 'Next' to continue." +
+                closeText;
+                
+            //Fourth page text  
+            var text4 = header +
+                lineSkip + openText +
+                "Also, please note that you will not be allowed to proceed unless you drag the slider to the left or right of the middle. If the slider is not moved, you will not be able to continue to the next trial. If you are completely unsure of which direction the non-random dots moved, just make your best guess."    +
+                closeText + lineSkip + openText +
+                "The motion direction will be selected randomly and the directions of previous motions will have no impact on the next motion direction. We have no expectations regarding how your confidence assessments would be distributed and it is important that you report your confidence that you experienced for each specific trial." +
+                closeText + lineSkip + openText +
+                "Press 'Next' to continue." +
+                closeText;
+            
+            //Fifth page text   
+            var text5 = header +
+                lineSkip + openText +
+                "You will be given a few practice trials before the start of the actual experiment. Make sure that you take the time to understand the task and are comfortable with the layout of the screen." +
+                closeText + lineSkip + openText +
+                "This is the end of the instructions. The practice trials will begin in the next screen. " +
+                closeText + lineSkip + openText +
+                "Remember that if you are guessing much of the time, this is OK, and if you are very certain much of the time, this is OK, too." +
+                closeText + lineSkip + openText +
+                "Press 'Next' to begin the practice trials." +
+                closeText;
+            
+            //Add the space to the top if there is space
+            text0 = addSpaceToTop(text0);
+            text1 = addSpaceToTop(text1);
+            text2 = addSpaceToTop(text2);
+            text3 = addSpaceToTop(text3);
+            text4 = addSpaceToTop(text4);
+            text5 = addSpaceToTop(text5);
+            
+            //The block of instructions containing all the pages of text above
+            var instructions_block = {
+                type: 'instructions',
+                post_trial_gap: timingPostTrialText,
+                pages: [text1, text2, text3, text4, text5],
+                show_clickable_nav: true
+                /*timeline: [
+                    {text: text0},
+                    {text: text1},
+                    {text: text2},
+                    {text: text3},
+                    {text: text4},
+                    {text: text5}
+                ]*/
+            };
+            
+            return instructions_block;
+        }//End of makeInstructionsBlock
+        
+        //Function to make the text between the easy and hard practice trials
+        function makeTextBetweenEasyCenterAndPeripheryPracticeTrials(){
+            
+            //Create the text string
+            var text = lineSkip + openText +
+                "Great work! Those were the practice trials with the dots in the center. There will also be trials where dots are near the sides of your screen. These trials are likely to be more difficult than those with the dots in the center." +
+                closeText + lineSkip + openText +
+                "We know it is tempting to look at the dots at the sides of the screen. But remember: Always start with your eyes at the fixation cross and keep it there until it disappears from the screen, even when the dots are being presented." +
+                closeText + lineSkip + openText +
+                "Remember to use the entire range of the slider to indicate how confident you are in your decision. If you are completely unsure, just make your best guess." +
+                closeText + lineSkip + openText +
+                "Press any key to continue." +
+                closeText;
+            
+            //Add the space to the top  
+            text = addSpaceToTop(text);
+            
+            //The block of text
+            var textBetweenEasyCenterAndPeripheryPracticeTrials = {
+                type: 'instructions',
+                post_trial_gap: timingPostTrialText,
+                pages: [text]
+            };
+            
+            
+            return textBetweenEasyCenterAndPeripheryPracticeTrials;
+        }
+        
+        //Function to make the text between the easy and hard practice trials
+        function makeTextBeforeBothPositionsEasyPracticeTrials(){
+            
+            //Create the text string
+            var text = lineSkip + openText +
+                "Good job! On the actual experiment, you will not know where the dots will be presented. The next few practice trials will have dots being presented either in the center or at the sides." +
+                closeText + lineSkip + openText +
+                "Remember to keep your eyes in the middle of the screen (where the fixation cross is) no matter where the dots are being presented." +
+                closeText + lineSkip + openText +
+                "Also, remember to use the entire range of the slider to indicate how confident you are in your decision. If you are completely unsure, just make your best guess." +
+                closeText + lineSkip + openText +
+                "Press any key to continue." +
+                closeText;
+            
+            //Add the space to the top  
+            text = addSpaceToTop(text);
+                        
+            //The block of text
+            var textBeforeBothPositionsPracticeTrials = {
+                type: 'instructions',
+                post_trial_gap: timingPostTrialText,
+                pages: [text]
+            };
+            
+            return textBeforeBothPositionsPracticeTrials;
+        }
+        
+        //Function to make the text between the easy and hard practice trials
+        function makeTextBetweenEasyAndHardPracticeTrials(){
+            
+            //Create the text string
+            var text = lineSkip + openText +
+                "Great work! Those were the easy practice trials. As you progress through the experiment, trials are likely to get more difficult." +
+                closeText + lineSkip + openText +
+                "The next four practice trials will be much harder. Try your best to determine the direction of the dots that are all moving in the same direction." +
+                closeText + lineSkip + openText +
+                "Remember that it is important that you report the confidence that you experience for each specific trial. If you are guessing much of the time, this is OK, and if you are very certain much of the time, this is OK, too." +
+                closeText + lineSkip + openText +
+                "Press any key to continue." +
+                closeText;
+            
+            //Add the space to the top  
+            text = addSpaceToTop(text);
+                                    
+            //The block of text
+            var textBetweenEasyAndHardPracticeTrials = {
+                type: 'instructions',
+                post_trial_gap: timingPostTrialText,
+                pages: [text]
+            };
+            
+            return [textBetweenEasyAndHardPracticeTrials];
+        }
+        
+        //Function to make the text before actual trials
+        function makeTextBeforeActualTrials(){
+            
+            //Create the text string
+            var text = lineSkip + openText +
+                "Great job! You have completed all the practice trials." +
+                closeText + lineSkip + openText +
+                "We will now start the actual trials. You will not be receiving feedback for the following trials. This will take around 20 minutes to complete." +
+                closeText + lineSkip + openText +
+                "Remember that it is important that you report the confidence that you experience for each specific trial. If you are guessing much of the time, this is OK, and if you are very certain much of the time, this is OK, too." +
+                closeText + lineSkip + openText +
+                "Press any key to continue." +
+                closeText;
+            
+            //Add the space to the top  
+            text = addSpaceToTop(text);
+            
+            var textBeforeActualTrials = {
+                type: 'instructions',
+                post_trial_gap: timingPostTrialText,
+                pages: [text]
+            }
+            
+            return textBeforeActualTrials;
+        }
+        
+        //Function to make survey after the trials
+        function makeSurvey(){
+            
+            var text1 = lineSkip + openText +
+                "Awesome! You have completed the experiment." +
+                closeText + lineSkip + openText +
+                "We now have two simple questions to ask you. Your responses will not affect your compensation, so please be as honest as you can." +
+                closeText + lineSkip + openText +
+                "Press any key to continue." +
+                closeText;
+                
+            text1 = addSpaceToTop(text1);
+            
+            //Make the text to prompt for the survey
+            var textBeforeSurveyTrials = {
+                type: 'instructions',
+                post_trial_gap: timingPostTrialText,
+                pages: [text1]
+            };
+            
+            
+            //Make the gender survey
+            var genderSurvey = {
+                type: 'survey-multi-choice',
+                post_trial_gap: timingPostTrialText,
+                questions: ['What is your gender?'],
+                options: [['Male', 'Female', 'other', 'Wish not to answer']],
+                required: [[true]],
+                preamble: ['<h3> Question 1 </h3>']
+            };
+            
+            //Make the age survey
+            var ageSurvey = {
+                type: 'survey-text',
+                post_trial_gap: timingPostTrialText,
+                questions: ['What is your age?'],
+                columns: 5,
+                preamble: ['<h3> Question 2 </h3>']
+            };
+            
+            var text2 = lineSkip + openText +
+                "Well done! You are done with the entire task!" +
+                closeText + lineSkip + openText +
+                "Thank you very much for your time in participating in our experiment. Your participation will contribute to a greater understanding of the human visual system." +
+                closeText + lineSkip + openText +
+                "Press any key to officially end the experiment and submit your HIT." +
+                closeText;
+                
+            text2 = addSpaceToTop(text2);
+            
+            //Make the text to prompt for the survey
+            var textAfterSurveyTrials = {
+                type: 'instructions',
+                post_trial_gap: timingPostTrialText,
+                pages: [text2]
+            };
+            
+            return [textBeforeSurveyTrials, genderSurvey, ageSurvey, textAfterSurveyTrials];
+        }
+        
+        //Function to add the break screens based on the number of screens
+        function addInBreaks(trialsArray){
+            
+            //Create the text string
+            var text = lineSkip + openText +
+                "Great work!" +
+                closeText + lineSkip + openText +
+                "You may now take a short 1-minute break to rest your eyes." +
+                closeText + lineSkip + openText +
+                "Remember that it is important that you report the confidence that you experience for each specific trial. If you are guessing much of the time, this is OK, and if you are very certain much of the time, this is OK, too." +
+                closeText + lineSkip + openText +
+                "Whenever you are ready, press any key to continue with the experiment." +
+                closeText;
+            
+            //Add the space to the top  
+            text = addSpaceToTop(text);
+            
+            //Make it a trial object
+            var breakTrial = {
+                type: 'instructions',
+                pages: [text]
+            }
+            
+            //Make an array of where to slot in the breaks
+            var breakPointsArray = [];
+            
+            //Fill in the array (start with 1 because no break at the front)
+            for(var i = 1; i <= numberOfBreaks; i++){
+                var breakPoint = Math.floor(i/(numberOfBreaks+1)*trialsArray.length);
+                breakPointsArray.push(breakPoint);
+            }
+            
+            //For loop to add the breaks. (Go backwards so that we don't need to account for previously spliced indices)
+            for(var i = numberOfBreaks-1; i > -1; i--){
+                
+                //Load in the current index to insert the break
+                var currentIndex = breakPointsArray[i];
+                
+                //Make sure that we are at the similarity trial to add in the break
+                while(trialsArray[currentIndex]["type"] !== 'RDK'){
+                    //Go backwards because we tend to overshoot (index starts at 0)
+                    currentIndex--;
+                }
+                
+                //Splice in the break
+                trialsArray.splice(currentIndex, 0, breakTrial)
+                
+            }
+            
+            //Return the spliced array
+            return trialsArray;
+        }//End of addInBreaks
+        
+        //Function to add space to the top of the text based on the window height
+        function addSpaceToTop(textString){
+            //The amount of space left to use
+            var spaceLeft = window.innerHeight - 700;
+            
+            //While there is still space left, then push it down further
+            while(spaceLeft > 0){
+                textString = "<h2> <br/> </h2>" + textString;
+                spaceLeft -= 100;
+            }
+            
+            return textString;
+        }
+        
+        //------Text-creation Functions End-------
+        
+        //------Timeline (Array-handler) Functions Begin-------
+        
+        //Function to make practice trials of
+        function makePracticeTrials(position, coherenceType, numberOfTrials){
+            
+            //The template practice trials
+            var templatePracticeTrials;
+            
+            if(position === "both"){
+                //Make 8 trials for easy practice both
+                templatePracticeTrials = makeTwoTrialsArray("center",coherenceType).concat(makeTwoTrialsArray("center",coherenceType).concat(makeTwoTrialsArray("left",coherenceType).concat(makeTwoTrialsArray("right",coherenceType))));
+            }
+            //Else if it is for the periphery
+            else if(position === "periphery"){
+                //Make 4 practice trials for periphery
+                templatePracticeTrials = makeTwoTrialsArray("left",coherenceType).concat(makeTwoTrialsArray("right",coherenceType));// [left_left, left_right, right_left, right_right]
+            }
+            //Else if it is for the center
+            else if(position === "center"){
+                //Make 2 practice trials for the center
+                templatePracticeTrials = makeTwoTrialsArray("center",coherenceType);
+            }
+            //Error checking. Should not run
+            else{
+                console.log("Error: makePracticeTrials function has no valid position.");
+            }
+            
+            var multipliedArray = [];
+            
+            //If there should be less trials than there are, we cut them
+            if(numberOfTrials < templatePracticeTrials.length){
+                //The group to select one out of (e.g. select one out of every 2)
+                var numSelectOne = Math.floor(templatePracticeTrials.length/numberOfTrials);
+                
+                //For loop that traverses each group and selects one
+                for (var i = 0; i < templatePracticeTrials.length; i+=numSelectOne){
+                    //Randomly choose one of each pair [0 or 1 + groupNumberStartingIndex]
+                    var chosenFromPair = Math.floor(Math.random()*2) + i;
+                    //Push that into the array
+                    multipliedArray.push(templatePracticeTrials[chosenFromPair]);
+                }
+            }
+            //Else if the number is more than the template, then multiply and shuffle the array
+            else if(numberOfTrials > templatePracticeTrials.length){
+                multipliedArray = jsPsych.randomization.repeat(templatePracticeTrials,Math.floor(numberOfTrials/templatePracticeTrials.length));
+            }
+            //Else they are equal and we just transfer as is
+            else{
+                multipliedArray = templatePracticeTrials;
+            }
+            
+            //Shuffle the array anyways
+            var shuffledArray = jsPsych.randomization.shuffle(multipliedArray);
+            //Add in the similarity plugin after each trial
+            var shuffledArrayWithoutFeedback = interleaveSimilarityIntoTrials(shuffledArray);
+            //Add in the feedback after each RDK and similarity trial
+            var shuffledArrayWithFeedback = interleaveFeedbackIntoTrials(shuffledArrayWithoutFeedback);
+            
+            return shuffledArrayWithFeedback;
+        }//End of makePracticeTrials
+        
+        //Function to make the two trials in one array
+        function makeTwoTrialsArray(position, coherenceType){
+            
+            //Make a copy of the typical trial 
+            var tempTrial = Object.assign({},typicalTrial);
+            //Tag the trial with the position
+            tempTrial.position = position;
+            
+            //If this is for the center trials, then use the default RDK setting
+            if(position === "center"){
+                //Use Default for aperture position
+                //Log data to tag this as center
+                tempTrial.positionType = "center";
+            }
+            //Else if this is left, then set the aperture location
+            else if(position === "left"){
+                tempTrial.aperture_center_x = function(){ return(window.innerWidth/2 - peripheryDistanceFromCenter); };
+                //Log data to tag this as periphery
+                tempTrial.positionType = "periphery";
+            }
+            //Else if this is right, then set the aperture location
+            else if(position === "right"){
+                tempTrial.aperture_center_x = function(){ return(window.innerWidth/2 + peripheryDistanceFromCenter); };
+                //Log data to tag this as periphery
+                tempTrial.positionType = "periphery";
+            }
+            
+            //Add in the coherence depending on the parameter
+            //If staircase, add in the staircase function
+            if(coherenceType == "staircase"){
+                tempTrial.trialType = "actual";
+                //Log the PEST type
+                tempTrial.myPEST = 1;
+                //Check which staircase to use
+                //If center, then use myPest1
+                if(position === "center"){
+                        tempTrial.coherence = function(){
+                        console.log("myPest1");
+                        currentCoherence1 = myPest1.staircase(transferCorrect1);
+                        return currentCoherence1;
+                    } //To be evaluated at the start of trial
+                }
+                //Else if periphery, use myPest2
+                else if(position === "left" || position === "right"){
+                        tempTrial.coherence = function(){
+                        return myPest2.staircase(transferCorrect2);
+                    } //To be evaluated at the start of trial
+                }
+                
+            }
+            //Else if easy, then set coherence to easy coherence level
+            else if(coherenceType == "easy"){
+                tempTrial.coherence = easyCoherence;
+                tempTrial.difficulty = "easy";
+                tempTrial.trialType = "practice";
+            }
+            //Else if hard, then set coherence to hard coherence level
+            else if(coherenceType == "hard"){
+                tempTrial.coherence = hardCoherence;
+                tempTrial.difficulty = "hard";
+                tempTrial.trialType = "practice";
+            }
+            //Error checking. Should not run.
+            else{
+                console.log("Invalid coherenceType (in makeTwoTrialsArray function). Defaulting to default coherence level.")
+            }
+                                    
+            //Left trial
+            var left_RDK_trial = Object.assign({},tempTrial); //Copy the temp trial object
+            left_RDK_trial.coherent_direction = coherentDirection_left;//Add in the coherent direction
+            
+            //Right trials
+            var right_RDK_trial = Object.assign({},tempTrial); //Copy the temp trial object
+            right_RDK_trial.coherent_direction = coherentDirection_right;//Add in the coherent direction
+                        
+            return [left_RDK_trial, right_RDK_trial]; //Return a 2-element array of left and right trial objects
+        }//End of makeTwoTrialsArray
+        
+        function changeToPEST2(twoTrialsArray){
+            
+            //Go through each trial in the array
+            for (var trialObject of twoTrialsArray){
+                
+                //Change the coherence
+                trialObject.coherence = function(){
+                    console.log("myPest2");
+                    currentCoherence2 = myPest2.staircase(transferCorrect2);
+                    return currentCoherence2;
+                } //To be evaluated at the start of trial
+                
+                //Change the PEST_Number
+                trialObject.myPEST = 2;
+            }
+            
+            //Return the array with modified trials
+            return twoTrialsArray;
+        }
+
+        //Function to insert a similarity plugin after every trial
+        function interleaveSimilarityIntoTrials(RDKTrialsArray){
+            //Create a temporary array to hold both types (RDK and Similarity)
+            var tempArray = [];
+            
+            //Loop through each of the RDK trials
+            for (var i = 0; i < RDKTrialsArray.length; i++){
+                
+                //Load the current trial into a variable for easy handling
+                var currentRDKTrial = RDKTrialsArray[i];
+                
+                //For each RDK trial, create a similarity trial based off the direction of that trial
+                var similarityTask = {
+                    type: 'html-slider-response',
+                    is_html: true,
+                    stimulus: '',//fakeStimuli, //No stimuli for this plugin
+                    post_trial_gap: timingPostTrialSimilarity,
+                    labels: ["100%<br/>Completely certain - Left", "50%|50%<br/>Purely guessing", "100%<br/>Completely certain - Right"],
+                    timing_first_stim: 1, //Setting all the timings to zero so that we only use the post_trial_gap to control the timings
+                    timing_image_gap: 1,
+                    prompt: "<h4> Move the slider to show how confident you are in the direction of the dots.</h4>",
+                    data: {
+                        coherent_direction: currentRDKTrial.coherent_direction, //Tag the direction of the previous RDK trial onto the similarity task
+                        coherence: currentRDKTrial.coherence,
+                        difficulty: currentRDKTrial.difficulty, //Tag the difficulty of the previous RDK trial onto the similarity task
+                        trialType: currentRDKTrial.trialType, //Tag the trial type of the previous RDK trial onto the similarity task
+                        position: currentRDKTrial.position, //Tag the location
+                        positionType: currentRDKTrial.positionType, //Tag the location Type
+                        myPEST: currentRDKTrial.myPEST//Tag the which PEST we're using
+                    }, 
+                    on_finish: function(dataObject){
+                        
+                        //Get rid of the html while CSD runs
+                        document.getElementsByClassName('jspsych-display-element')[0].innerHTML = '';//Copy-pasted from similarity plugin
+                        
+                        //Variable to keep track of whether the subject responded correctly
+                        var isCorrect = false;
+                            
+                        //If the direction of dots correspond with the direction of subject's response, the subject's response is correct
+                        if ( (dataObject.coherent_direction == coherentDirection_left && dataObject.sim_score < 50) ||(dataObject.coherent_direction == coherentDirection_right && dataObject.sim_score > 50) ){
+                            isCorrect = true;
+                        } 
+                    
+                        //Save it into the global variable based on which staircase it used
+                        if(dataObject.myPEST === 1){
+                            transferCorrect1 = isCorrect;
+                            var currentCoherence = currentCoherence1;
+                        }
+                        else if(dataObject.myPEST === 2){
+                            transferCorrect2 = isCorrect;
+                            var currentCoherence = currentCoherence2;
+                        }
+                        
+                        //Add in -ve sign if coherence is going left
+                        currentCoherence = dataObject.coherent_direction == coherentDirection_left ? -currentCoherence : currentCoherence;
+                        
+                        //If this is an actual trial, then add the data to the CSD object and run the CSD method
+                        if(dataObject.trialType === "actual"){
+                            
+                            //Keeping track of which trial it is (Not important)
+                            trialCounter++;
+                            console.log("Current Trial: " + trialCounter)
+                            
+                            myCSD.addData(dataObject.sim_score/100, currentCoherence);
+                            [initialMu, initialSigma, initialK, finalMu, finalSigma, finalK] = myCSD.startCSD();
+                            //Save the variables
+                            jsPsych.data.addDataToLastTrial({initialMu:     initialMu});
+                            jsPsych.data.addDataToLastTrial({initialSigma:  initialSigma});
+                            jsPsych.data.addDataToLastTrial({initialK:      initialK});
+                            jsPsych.data.addDataToLastTrial({finalMu:       finalMu});
+                            jsPsych.data.addDataToLastTrial({finalSigma:    finalSigma});
+                            jsPsych.data.addDataToLastTrial({finalK:        finalK});
+                            
+                        }
+                        
+                        //Add the decision to the data object
+                        jsPsych.data.addDataToLastTrial({correct: isCorrect});
+                        //[sivaHack]console.log(" ^ Last trial correct: " + isCorrect);
+                        
+                    }
+                };
+                
+                //Push in the RDK trial
+                tempArray.push(currentRDKTrial);
+                //Push in the similarity task
+                tempArray.push(similarityTask);
+                
+            }//End of for loop
+            
+            return tempArray;
+        }//End of interleaveSimilarityIntoTrial
+        
+        //Function to insert a feedback screen (text plugin) after every RDK and similarity trial
+        function interleaveFeedbackIntoTrials(RDKAndSimilarityTrialsArray){
+            
+            //Create a temporary array to hold both types (RDK and Similarity)
+            var tempArray = [];
+            
+            //Loop through every pair of RDK + Similarity trials
+            for (var i = 0; i < RDKAndSimilarityTrialsArray.length; i++){
+                
+                //Load the current trial into a variable for easy handling
+                var currentTrial = RDKAndSimilarityTrialsArray[i]; //This is either a RDK trial (if i is even) or Similarity trial (if i is odd)
+                
+                //Push the trial in regardless of which trial it is
+                tempArray.push(currentTrial);
+                
+                //If i is odd, then it is a Similarity trial. Once it is pushed, we push in the feedback trial
+                if (i%2 == 1){
+                    
+                    //Create the feedback trial to be pushed in
+                    var feedbackTrial = {
+                        type: 'html-keyboard-response',
+                        post_trial_gap: timingPostTrialText,
+                        stimulus: function(){
+                            
+                            //Declare the string to return
+                            var returnString = ""; //
+                            
+                            //Get the data from the previous trial (the similarity trial data)
+                            var dataObject = jsPsych.data.get().last(1).values()[0];
+                            console.log(dataObject);
+                            
+                            //Get the correctness of the previous trial
+                            var isCorrect = dataObject.correct;
+                            
+                            //If it is correct, then display text that says that the subject did well
+                            if (isCorrect){
+                                
+                                returnString = lineSkip +
+                                    lineSkip + lineSkip + lineSkip + lineSkip + openText +
+                                    "That's correct!" +
+                                    closeText + lineSkip + openText +
+                                    "Keep up the good work!" +
+                                    closeText + lineSkip + openText +
+                                    "Press any key to continue." +
+                                    closeText;
+                                
+                                //If it is an easy trial, increase the easy counter
+                                if (dataObject.difficulty == "easy"){
+                                    easyCorrectCounter++;
+                                }
+                                //Else if it is an easy trial, increase the easy counter
+                                else if (dataObject.difficulty == "hard"){
+                                    hardCorrectCounter++;
+                                }
+                                //Error checking. This should not run
+                                else{
+                                    console.log("Error: Feedback trial is neither hard nor easy.");
+                                }
+                                
+                            }
+                            else{
+                                returnString = lineSkip +
+                                lineSkip + lineSkip + lineSkip + lineSkip + openText +
+                                "That is incorrect." +
+                                closeText + lineSkip + openText +
+                                "Remember to try to see where the non-random dots are moving." +
+                                closeText + lineSkip + openText +
+                                "Please try again." +
+                                closeText + lineSkip + openText +
+                                "Press any key to continue." +
+                                closeText;
+                            }
+                            
+                            returnString = addSpaceToTop(returnString);
+                            console.log(returnString);
+                                
+                            return returnString;
+                        }//End of pages function
+                    };//End of object definition
+                    
+                    //Push the feedback trial object into the tempArray
+                    tempArray.push(feedbackTrial)
+                }//End of if
+                
+            }//End of for loop
+            
+            return tempArray;   
+        }//End of interleaveFeedbackIntoTrials
+        
+        //Function to interleave the Fixation Cross before the stimuli 
+        function insertFixationCrossBeforeRDK(mixedArray){
+            
+            function makeFixationCross(){
+                //Create a canvas and attach it to the display element / body
+                var body = document.getElementsByTagName('body')[0];
+                var canvas = document.createElement('canvas'); //Global variable to be used later in the on_finish function
+                body.appendChild(canvas);
+                body.style.margin = 0;
+                body.style.padding = 0;
+                
+                
+                //Set up the canvas
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                canvas.style.margin = 0;
+                canvas.style.padding = 0;
+                
+                //Get the context
+                var ctx = canvas.getContext('2d');
+                
+                //Draw the background
+                ctx.fillStyle = "gray";
+                ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+                
+                //Draw a fixation cross
+                ctx.beginPath();
+                ctx.lineWidth = fixationCrossThickness;
+                ctx.moveTo(window.innerWidth/2 - fixationCrossWidth, window.innerHeight/2);
+                ctx.lineTo(window.innerWidth/2 + fixationCrossWidth, window.innerHeight/2);
+                ctx.fillStyle = fixationCrossColor;
+                ctx.stroke();
+                
+                //Vertical line
+                ctx.beginPath();
+                ctx.lineWidth = fixationCrossThickness;
+                ctx.moveTo(window.innerWidth/2, window.innerHeight/2 - fixationCrossHeight);
+                ctx.lineTo(window.innerWidth/2, window.innerHeight/2 + fixationCrossHeight);
+                ctx.fillStyle = fixationCrossColor;
+                ctx.stroke();
+                
+                //Convert it to a url
+                var fixationCrossURL = canvas.toDataURL();
+                
+                //Remove the canvas from the body/display element
+                canvas.remove();
+                
+                return fixationCrossURL;
+            }
+            
+            //Create a fixation cross object
+            var fixationCrossObject = {
+                type: 'html-keyboard-response',
+                stimulus: function(){
+                    return '<img src=' + makeFixationCross() + '>';
+                },
+                post_trial_gap: 0.0000001,
+                response_ends_trial: false,
+                trial_duration: fixationCrossDuration,
+                on_trial_start: function(){
+                    //Set the body margins and padding to zero to place the image correctly
+                    //var body = document.getElementsByTagName('body')[0];
+                    //body.style.margin = 0;
+                    //body.style.padding = 0;
+                },
+                on_finish: function(){
+                    //Reset the margin and padding back to the original so that subsequent plugins will work well
+                    //body.style.margin = "50px auto 50px auto"; //From jsPsych.css
+                    //body.style.padding = "auto"; //Guess
+                }
+            };
+                        
+            //Loop through the whole array, and splice in the fixation cross before the RDK
+            for (var i = 0; i < mixedArray.length-1; i++){
+                    
+                //If the item is an RDK, then slot in the fixation cross right before it
+                if (mixedArray[i].type == 'RDK'){
+                    mixedArray.splice(i,0,fixationCrossObject);
+                    i++; //Increment the counter again to move to the next element since we inserted the fixation cross in this element.
+                }
+                
+            }//End of for loop
+            
+            return mixedArray;
+        }
+        
+        //Function to end the experiment if the easy correct did not hit the threshold
+        function addInEndExperimentClause(mixedArray){
+            
+            mixedArray[mixedArray.length-1].on_finish = function(){
+                console.log("Number correct: " + easyCorrectCounter);
+                console.log("Threshold: " + easyCorrectThreshold);
+                if(easyCorrectCounter < easyCorrectThreshold){
+                    jsPsych.endExperiment(lineSkip + lineSkip + lineSkip + openText +
+                        "Thank you for participating in this experiment." +
+                        closeText + lineSkip + lineSkip + lineSkip + openText +
+                        "We will be compensating you $0.25 for your time." +
+                        closeText + lineSkip + lineSkip + lineSkip + openText +
+                        "You may exit the experiment." +
+                        closeText);
+                }
+                else{
+                    return false;
+                }
+            }
+            
+            return mixedArray;
+        }
+        
+        //------Timeline (Array-handler) Functions End-------
+        
+        
+        //-------- Trial-Making --------
+        
+        //Creates a consent form trial and returns it
+        function createConsentFormBlock(){
+
+	        return {
+	          type:'external-html',
+	          url: "consentForm.html",
+	          cont_btn: "startExperimentButton",
+	          check_fn: check_consent
+	        };
+        }
+        
+        //Create trial to generate completion code, and check if they've earned a bonus on this session
+        function createCompletionCodeBlock(){
+        	
+	        return {
+	            type: 'html-keyboard-response',
+	            stimulus: '<center><p class="loader" style="margin-top: 20%">Loading...</p></center>',
+	            stimulus_duration: 1,
+	            trial_duration: 10,
+	            //display_element: $('#vert-center'),
+	            on_finish: function()
+	            {
+	                // Create completionCode and check if it exists in the database. Keep running until a unique one is generated
+	                completionCode = Math.floor(Math.random() * 9000000 + 1000000); 
+	                checkID(false, completionCode, 'completion_code', tableName, function(exists){getNewSubID(exists);}); 
+	            },
+	            post_trial_gap: 0
+	        };
+        }
+        
+        //Create trial to thank the participate, tell them about their bonus, and display their completionCode completion code
+        function createGoodbyeBlock(){
+        	
+	        return {
+	            type: 'html-button-response',
+	            stimulus: function()
+	            {
+	                var output = '<p class="instructions">Thank you for participating!</p>';
+	                var data = jsPsych.data.get().last(1).values()[0];
+	                var completionCode = data.completion_code;
+	                    
+	                // Display completionCode completion code
+	                output += '<p class="instructions"> Your survey code is: <strong>'+ completionCode + '</strong></p>' +
+	                    '<p class="instructions">Please paste this number back into the box at the mTurk HIT website.</p>' +
+	                    '<p class="instructions"><i>Do <b>NOT</b> close this window until you have submitted the above code.</i></p>';
+	                
+	                return output;
+	            },
+	            choices: ['I have submitted the code. Exit the experiment.'],
+	            post_trial_gap: 0
+	        };
+        }
+        
+        //-------- Functionality --------
+        
+        // Function to draw parameters from the URL
+        function $_GET(param) 
+        {
+            var vars = {};
+            window.location.href.replace( 
+                /[?&]+([^=&]+)=?([^&]*)?/gi, // regexp
+                function( m, key, value ) { // callback
+                    vars[key] = value !== undefined ? value : '';
+                }
+            );
+
+            if ( param ) 
+            {
+                console.log(vars);
+                console.log(param);
+                return vars[param] ? vars[param] : null;    
+            }
+            return vars;
+        }
+        
+        // Function to check compare the inputted ID to all IDs of the IDType in the SQL database
+        function checkID(async, ID, IDType, data_table, callback)
+        {
+            $.ajax({
+                type:'post',
+                cache: false,
+                async: async,
+                url: 'checkSubID.php',
+                data: // Inputs into the .php script
+                {
+                    ID: ID,
+                    IDType: IDType,
+                    completeTrials: 3450,
+                    data_table: data_table
+                },
+                success: function(exists)  // Use whatever callback function is specified when calling the checkID function
+                {
+                    callback(exists);
+                },
+                error: function (xhr, ajaxOptions, thrownError) 
+                {
+                   alert(thrownError);
+               }
+           });
+        }
+        
+        // Callback function for checking if the completionCode exists
+        function getNewSubID(exists)
+        {
+            if (exists === '1' || exists === 1) // If the completionCode exists in the SQL database
+            {
+                completionCode = Math.floor(Math.random() * 9000000 + 1000000); // Generate new completionCode
+                checkID(false, completionCode, 'completion_code', tableName, function(existsNow){getNewSubID(existsNow);}); // Check if the new completionCode exists in the database
+            }
+            else // If the completionCode doesn't exist in the SQL database
+                jsPsych.data.addProperties({completion_code: completionCode}); // Add the completionCode to the data 
+        }
+        
+        //A function to save the data to the SQL table on the server.  This gets called at the end of the file.
+        function save_data(data_table,data){
+          
+            //Add data to the jsPsych data file
+            jsPsych.data.addProperties({
+                workerId: workerId,
+                assignmentId: assignmentId,
+                hitId: hitId
+            });
+          
+            //Use AJAX to post the data onto the server
+            $.ajax({
+                type:'post',
+                cache: false,
+                url: 'savedata.php',
+                data: {
+                    table: data_table,
+                    json: JSON.stringify(data),
+                },
+                success: function(output) { console.log(output); } // write the result to javascript console
+            });
+        }
+      
+        // sample function that might be used to check if a subject has given
+        // consent to participate.
+        function check_consent(elem) {
+          if ($('#consent_checkbox').is(':checked')) {
+            return true;
+          }
+          else {
+            alert("If you wish to participate, you must check the box next to the statement 'I agree to participate in this study.'");
+            return false;
+          }
+          return false;
+        };
+
+
+  </script>
+  </html>

@@ -1,0 +1,67 @@
+<!--
+ For help on using this template, see the blog post: http://mechanicalturk.typepad.com/blog/2014/04/editing-the-survey-link-project-template-in-the-ui.html --><!-- Bootstrap v3.0.3 
+-->
+
+<!--
+	The code below is written by Jason Carpenter.
+    GitHub: https://github.com/jmcarpenter2
+-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<link href="https://s3.amazonaws.com/mturk-public/bs30/css/bootstrap.min.css" rel="stylesheet" />
+<section class="container" id="SurveyLink" style="margin-bottom:15px; padding: 10px 10px; font-family: Verdana, Geneva, sans-serif; color:#333333; font-size:0.9em;">
+	<div class="row col-xs-12 col-md-12">
+		<div class="panel panel-primary">
+		<div class="panel-heading"><strong>Judge motion and rate confidence</strong></div>
+
+		<div class="highlight-box" style="padding: 10px">
+			<p> You are invited to <!--Task-->judge motion direction and rate your confidence<!--/Task-->. You will be compensated <!--Amount-->$2.00<!--/Amount--> for completion.</p>
+
+			<p> You should only take part if you wish to do so, and you can withdraw at any time.</p>
+
+
+			<p> You must use Google Chrome or Mozilla Firefox to participate in the experiment. If you would like to find out more about the experiment, please follow the link below. If you would like to contact the experimenter please email <!--Email--><a href="mailto:uclaqualialab@gmail.com">uclaqualialab@gmail.com</a><!--/Email-->. At the end of the experiment you will be provided with a survey code, which you should paste into the box below to receive your payment.</p>
+		
+
+			<p><b><!--Link--><a href="<experimentLink>" onclick="javascript:addId(this)" target="_blank"><!--/Link--> Click here to access the experiment.</a> Please click directly on the link. Do not open in a new tab.</b></p>
+			
+			
+			<script type="text/javascript">
+			function addId(element){
+				
+				// Getting URL parameters
+				function $_GET(param) 
+				{
+					var vars = {};
+					window.location.href.replace( 
+						/[?&]+([^=&]+)=?([^&]*)?/gi, // regexp
+						function( m, key, value ) { // callback
+							vars[key] = value !== undefined ? value : '';
+						}
+					);
+
+					if ( param ) 
+					{
+						return vars[param] ? vars[param] : null;	
+					}
+					return vars;
+				}
+				
+				var workerId = $_GET('workerId');
+				//appending the workerId to the link
+				
+				if (workerId !== null)
+				{
+					$(element).attr('href', function() {
+						return this.href + "&workerID=" + workerId;
+					});
+				}
+			}
+			</script>
+
+			<p>Provide the survey code here:</p>
+
+			<input id="subject_id" name="subject_id" size="10" type="text"/>
+		</div>
+	</div>
+</section>
+

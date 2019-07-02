@@ -48,20 +48,18 @@
         //Data switches
         var saveLocally = 0;	// 0: Nothing.      1: Download CSV file
         var displayData = 0;  	// 0: Nothing.      1: Display data on browser
-        var launchOnline = 1;	// 0: Nothing.		1: Save to database, consent form, completion code generation, dummy variables created for all 3 IDs
+        var launchOnline = 1;	// 0: Nothing.		1: Save to database, consent form, completion code generation
         var tableName = 'RDK_CSD_CenterOnly'; //Name of the table in the database
-        
-        if(launchOnline){
-        
-            //Get the info from mTurk
-            var turkInfo = getTurkInfo();
-            var workerId = turkInfo.workerId;
-            var assignmentId = turkInfo.assignmentId;
-            var hitId = turkInfo.hitId;
-            //workerId = $_GET('workerID');
+
+        //Get the info from mTurk
+        var turkInfo = getTurkInfo();
+        var workerId = turkInfo.workerId;
+        var assignmentId = turkInfo.assignmentId;
+        var hitId = turkInfo.hitId;
+        //workerId = $_GET('workerID');
             
-        }
-        else{
+        //If we are not on mTurk
+        if(workerId == '' && assignmentId == '' && hitId == ''){
             
             // Use the timestamp as a unique id (specific to the second)
             var timestamp = Math.floor(Date.now()/1000);
@@ -82,7 +80,7 @@
         //------------------- Your code below this line -------------------
         
         
-
+        
         //PARAMETERS
         var trialDuration = 200;
         var trialsPerCondition = 50; //Each "Condition" has 4 center trials: 2 (left/right) * 2 (myPEST1/myPEST2)
@@ -166,6 +164,9 @@
         
         
         //-------------------- CSD --------------------
+        
+        //How many trials before CSD runs
+        var trialsPerCSD = 10;
         
         //Create the CSD object
         var myCSD = new csd();
@@ -553,6 +554,8 @@
                 closeText + lineSkip + openText +
                 "Remember that it is important that you report the confidence that you experience for each specific trial. If you are guessing much of the time, this is OK, and if you are very certain much of the time, this is OK, too." +
                 closeText + lineSkip + openText +
+                "Every 10 trials or so, there might be a long pause after you click the 'Submit' button. This is completely normal and please allow a few seconds for the experiment to continue to the next trial." +
+                closeText + lineSkip + openText +
                 "Press any key to continue." +
                 closeText;
             
@@ -640,6 +643,8 @@
                 "You may now take a short 1-minute break to rest your eyes." +
                 closeText + lineSkip + openText +
                 "Remember that it is important that you report the confidence that you experience for each specific trial. If you are guessing much of the time, this is OK, and if you are very certain much of the time, this is OK, too." +
+                closeText + lineSkip + openText +
+                "The pauses every 10 trials after you click the 'Submit' button is completely normal. When this happens, please allow a few seconds for the experiment to continue to the next trial." +
                 closeText + lineSkip + openText +
                 "Whenever you are ready, press any key to continue with the experiment." +
                 closeText;
@@ -917,19 +922,25 @@
                         //If this is an actual trial, then add the data to the CSD object and run the CSD method
                         if(dataObject.trialType === "actual"){
                             
-                            //Keeping track of which trial it is (Not important)
+                            //Keeping track of which trial it is (Important only to check when CSD should run)
                             trialCounter++;
                             console.log("Current Trial: " + trialCounter)
                             
                             myCSD.addData(dataObject.sim_score/100, currentCoherence);
-                            [initialMu, initialSigma, initialK, finalMu, finalSigma, finalK] = myCSD.startCSD();
-                            //Save the variables
-                            jsPsych.data.addDataToLastTrial({initialMu:     initialMu});
-                            jsPsych.data.addDataToLastTrial({initialSigma:  initialSigma});
-                            jsPsych.data.addDataToLastTrial({initialK:      initialK});
-                            jsPsych.data.addDataToLastTrial({finalMu:       finalMu});
-                            jsPsych.data.addDataToLastTrial({finalSigma:    finalSigma});
-                            jsPsych.data.addDataToLastTrial({finalK:        finalK});
+                            
+                            //Only run the CSD if it is every 5th trial
+                            if(trialCounter%trialsPerCSD === 0){
+                                
+                                [initialMu, initialSigma, initialK, finalMu, finalSigma, finalK] = myCSD.startCSD();
+                                //Save the variables
+                                jsPsych.data.addDataToLastTrial({initialMu:     initialMu});
+                                jsPsych.data.addDataToLastTrial({initialSigma:  initialSigma});
+                                jsPsych.data.addDataToLastTrial({initialK:      initialK});
+                                jsPsych.data.addDataToLastTrial({finalMu:       finalMu});
+                                jsPsych.data.addDataToLastTrial({finalSigma:    finalSigma});
+                                jsPsych.data.addDataToLastTrial({finalK:        finalK});
+                                
+                            }
                             
                         }
                         
@@ -1126,9 +1137,9 @@
                 console.log("Threshold: " + easyCorrectThreshold);
                 if(easyCorrectCounter < easyCorrectThreshold){
                     jsPsych.endExperiment(lineSkip + lineSkip + lineSkip + openText +
-                        "Thank you for participating in this experiment." +
+                        "Thank you for participating in this experiment. Unfortunately your performance in the practice does not allow you to proceed to the next phase." +
                         closeText + lineSkip + lineSkip + lineSkip + openText +
-                        "We will be compensating you $0.25 for your time." +
+                        "We will be compensating you $0.25 for your time. Please email uclaQualiaLab@gmail.com to receive compensation." +
                         closeText + lineSkip + lineSkip + lineSkip + openText +
                         "You may exit the experiment." +
                         closeText);
